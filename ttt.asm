@@ -5,6 +5,7 @@
 .ORIG x3000
 
 MAIN
+      LD R6,STACK
       LEA R0,WELCOME_MESSAGE
       PUTS
       JSR DRAW_BOARD
@@ -15,8 +16,18 @@ ADD_RANDOM_X
       STR R7, R6, #-1     ; save registers
       ADD R6, R6, #-1
 
-      ADD R0,R4,#8
-      JSR RAND_MOD
+      JSR RNG_LOOP
+  ; GET_DIGIT
+  ;     LD R1,X
+  ;     AND R2,R2,#0
+  ;     ADD R2,R2,#10
+  ;     JSR DIV
+  ;     LDI R3,X_DIV_Y
+  ;     LD R4,RNG_MAX
+  ;     ADD R0,R3,R4
+  ;     ST R3,X
+  ;     BRzp GET_DIGIT
+      HALT
 
 ADD_RANDOM_EXIT
       LDR   R7, R6, #0
@@ -113,146 +124,6 @@ DRAW_EXIT
       ADD   R6, R6, #1
       RET
 
-;--------------------------------------------------------------------------
-; RAND_MOD
-;
-; Generates random number between 0 and r0 - 1 inclusively
-; Returns r0 = random number
-;
-; Project: rpendleton/lc3-2048
-; Created by: Ryan Pendleton (Dec 2014)
-; License: MIT (see accompanying LICENSE file)
-;--------------------------------------------------------------------------
-
-RAND_MOD
-      STR   R0, R6, #-1
-      STR   R1, R6, #-2
-      STR   R2, R6, #-3
-      STR   R7, R6, #-4
-      ADD   R6, R6, #-4
-
-      LD    R0, RAND_SEED
-      LD    R1, RAND_Q
-      JSR   MOD_DIV           ; R0 = x % q
-
-      LD    R1, RAND_A
-      JSR   MULT              ; R0 = (x % q) * a
-      ST    R0, RAND_SEED
-
-      LDR   R1, R6, #3        ; get original R0
-      JSR   MOD_DIV
-
-      LDR   R7, R6, #0
-      LDR   R2, R6, #1
-      LDR   R1, R6, #2
-      ADD   R6, R6, #4
-      RET
-
-; data
-      RAND_INIT   .FILL x0000
-      RAND_SEED   .FILL xC20D
-      RAND_A      .FILL x0007
-      RAND_M      .FILL x7FFF ; 2^15 - 1
-      RAND_Q      .FILL x1249 ; M/A
-
-;--------------------------------------------------------------------------
-; END: RAND_MOD
-;--------------------------------------------------------------------------
-
-;--------------------------------------------------------------------------
-; MOD_DIV
-; Performs r0 % r1 and r0/r1.
-; Returns r0 = remainder, r1 = quotient
-;
-; Project: rpendleton/lc3-2048
-; Created by: Ryan Pendleton (Dec 2014)
-; License: MIT (see accompanying LICENSE file)
-;--------------------------------------------------------------------------
-
-MOD_DIV
-      STR   R1, R6, #-1       ; save registers
-      STR   R2, R6, #-2
-      STR   R3, R6, #-3
-      ADD   R6, R6, #-3
-
-      NOT   R2, R1
-      ADD   R2, R2, #1
-      BRz   MOD_DIV_EX        ; halt if dividing by zero
-
-      AND   R1, R1, #0        ; clear R1 (quotient)
-
-MOD_DIV_LOOP
-      ADD   R1, R1, #1
-      ADD   R0, R0, R2        ; R0 -= R1
-      BRp MOD_DIV_LOOP        ; R0 - R1 > 0, so keep looping
-      BRz MOD_DIV_END         ; R0 = 0, so we finished exactly
-
-                              ; R0 < 0, so we subtracted an extra one
-      LDR   R2, R6, #2        ; add it back in
-      ADD   R1, R1, #-1
-      ADD   R0, R0, R2
-
-MOD_DIV_END
-      LDR   R3, R6, #0
-      LDR   R2, R6, #1
-      ADD   R6, R6, #3
-      RET
-
-MOD_DIV_EX
-      HALT
-
-;--------------------------------------------------------------------------
-; MULT
-;
-; Performs multiplication using bit shifting
-; Returns r0 = r0 * r1
-;
-; Project: rpendleton/lc3-2048
-; Created by: Ryan Pendleton (Dec 2014)
-; License: MIT (see accompanying LICENSE file)
-;--------------------------------------------------------------------------
-
-MULT
-      ADD   R0, R0, #0
-      BRz   MULT_ZERO   ; return 0 if R0 = 0
-      ADD   R1, R1, #0
-      BRz   MULT_ZERO   ; return 0 if R1 = 0
-
-      STR   R1, R6, #-1 ; save registers
-      STR   R2, R6, #-2 ; save registers
-      STR   R3, R6, #-3
-      STR   R4, R6, #-4
-      ADD   R6, R6, #-4
-
-      AND   R2, R2, #0  ; clear R2 (product)
-      ADD   R3, R2, #1  ; set R3 = 1 (bit tester)
-
-MULT_LOOP               ; for each bit in R0
-      AND   R4, R0, R3        ; R4 = bit test(R0, R3)
-      BRnz  #1                ; only execute next line if bit is set
-      ADD   R2, R2, R1              ; product = product + R1
-      ADD   R1, R1, R1        ; R1 << 1
-      ADD   R3, R3, R3        ; R3 << 1
-      BRp   MULT_LOOP
-
-      ADD   R0, R2, #0  ; move product to R0
-
-MULT_END
-      LDR   R4, R6, #0  ; restore registers
-      LDR   R3, R6, #1
-      LDR   R2, R6, #2
-      LDR   R1, R6, #3
-      ADD   R6, R6, #4
-      RET
-
-MULT_ZERO
-      AND   R0, R0, #0
-      RET
-
-;--------------------------------------------------------------------------
-; END: MULT
-;--------------------------------------------------------------------------
-
 ; data
 
       SPACER            .STRINGZ " "
@@ -263,6 +134,7 @@ MULT_ZERO
       WELCOME_MESSAGE   .STRINGZ "Welcome to LC-3 TTT minigame\n\n"
 
       ; Array of ASCII X/O chars separated by nulls
+      STACK             .FILL x4000
       GAME_STATE        .FILL #49
                         .FILL x0
                         .FILL #50
@@ -282,9 +154,215 @@ MULT_ZERO
                         .FILL #57
                         .FILL x0
       GAME_STATE_LEN    .FILL #17
+      RNG_MAX           .FILL #-10
 
       ; use later
       NEW_LINE          .FILL x0A
       SPACE             .FILL x20
+
+RNG_LOOP
+  STR   R7, R6, #-1
+  ADD   R6, R6, #-1
+
+	; a (x mod q) - r (x / q)
+	LD R1, M
+	LD R2, A
+
+
+	JSR DIV			; q  <- m / a
+	LDI R3, X_DIV_Y
+	ST R3, Q
+
+	JSR MOD			; r  <- m mod a
+	LDI R3, X_MOD_Y
+	ST R3, R
+
+	LD R1, X
+	LD R2, Q
+	JSR MOD			; X mod q
+
+	LD R1, A
+	LDI R2, X_MOD_Y
+	JSR MULT		; A * (X mod q)
+	LDI R3, X_MUL_Y		; Save the result
+
+	LD R1, X
+	LD R2, Q
+	JSR DIV			; x / q
+
+	LD R1, R
+	LDI R2, X_DIV_Y
+	JSR MULT 		; R * (x / q)
+	LDI R4, X_MUL_Y		; Save the result
+
+	NOT R4, R4
+	ADD R4, R4, #1
+
+	ADD R3, R3, R4		; A * (X mod q) - R * (x / q)
+	ST R3, X
+	LD R5, X
+
+	BRn X_LT_0
+		; HALT
+	X_LT_0
+		LDI R2, M
+		ADD R1, R1, R2
+		; HALT
+
+	LD R1, NGEN
+	ADD R1, R1, #-1
+	BRz RNG_LOOP_END
+	ST R1, NGEN
+	BR RNG_LOOP
+RNG_LOOP_END
+  LDR   R7, R6, #0
+  ADD   R6, R6, #1
+  RET
+
+
+
+M .FILL #32767
+A .FILL x0007
+X .FILL x0001
+Q .FILL x0000
+R .FILL x0000
+X_MUL_Y .FILL x3600
+X_DIV_Y	.FILL x3601
+X_MOD_Y	.FILL x3602
+NGEN .FILL xA
+
+;''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+MULT
+	STI R1, SAVE_R1			; Save registers
+	STI R2, SAVE_R2			;
+	STI R3, SAVE_R3			;
+	STI R4, SAVE_R4			;
+	STI R7, SAVE_R7
+	AND R4, R4, #0			; Test the sign of X
+	ADD R1, R1, #0
+	BRn X_NEG			; If X is negative, change X to positive
+	BR #3
+	X_NEG
+		NOT R1, R1
+		ADD R1, R1, #1
+		NOT R4, R4
+	ADD R2, R2, #0
+	BRn Y_NEG			; If Y is negative, change Y to positive
+	BR #3				; Change Y to positive
+	Y_NEG
+		NOT R2, R2
+		ADD R2, R2, #1
+		NOT R4, R4
+	AND R3, R3, #0
+	MULT_REPEAT
+		ADD R3, R3, R1		; Perform addition on X
+		ADD R2, R2, #-1		; Use R2 as the counter
+		BRnp MULT_REPEAT	; Continue loop while counter not equal to 0
+
+	ADD R4, R4, #0			; Test the sign flag
+	BRn CHANGE_SIGN			; Change the result if sign flag is negative
+	BR #2
+	CHANGE_SIGN			; Change the sign of the result
+		NOT R3, R3
+		ADD R3, R3, #1
+	STI R3, X_MUL_Y			; Save the result
+	LDI R1, SAVE_R1			; Restore registers
+	LDI R2, SAVE_R2			;
+	LDI R3, SAVE_R3			;
+	LDI R4, SAVE_R4			;
+	RET
+DIV
+	STI R1, SAVE_R1			; Save registers
+	STI R2, SAVE_R2			;
+	STI R3, SAVE_R3			;
+	STI R4, SAVE_R4			;
+	STI R5, SAVE_R5			;
+
+	AND R3, R3, #0			; Initialize the whole part counter
+	AND R5, R5, #0			; Initialize the sign flag
+	ADD R1, R1, #0
+	BRn X_NEG_2			; If X is negative, change X to positive
+	BR #3
+	X_NEG_2
+		NOT R1, R1
+		ADD R1, R1, #1
+		NOT R5, R5
+	ADD R2, R2, #0
+	BRn Y_NEG_2
+	BR #3
+	Y_NEG_2
+		NOT R2, R2
+		ADD R2, R2, #1
+		NOT R5, R5
+
+	NOT R4, R2			; Initialize the decrement counter
+	ADD R4, R4, #1			;
+	DIV_REPEAT
+		ADD R1, R1, R4		; Subtract Y from X
+		BRn #2
+		ADD R3, R3, #1		; Increment the whole number counter
+		BR DIV_REPEAT		; Continue loop while X is still greater than Y
+	ADD R5, R5, #0			; Test the sign flag
+	BRn CHANGE_SIGN_2		; Change the result if sign flag is negative
+	BR #2
+	CHANGE_SIGN_2			; Change the sign of the result
+		NOT R3, R3
+		ADD R3, R3, #1
+	STI R3, X_DIV_Y			; Save the result
+	LDI R1, SAVE_R1			; Restore registers
+	LDI R2, SAVE_R2			;
+	LDI R3, SAVE_R3			;
+	LDI R4, SAVE_R4			;
+	LDI R5, SAVE_R5			;
+	RET
+
+MOD
+	STI R1, SAVE_R1			; Save registors
+	STI R2, SAVE_R2			;
+	STI R3, SAVE_R3			;
+	STI R4, SAVE_R4			;
+	STI R5, SAVE_R5			;
+	STI R7, SAVE_R7			;
+
+	AND R5, R5, #0
+	ADD R1, R1, #0
+	BRn X_NEG_3			; If X is negative, change X to positive
+	BR #3
+	X_NEG_3
+		NOT R1, R1
+		ADD R1, R1, #1
+		NOT R5, R5
+	ADD R2, R2, #0
+	BRn Y_NEG_3
+	BR #3
+	Y_NEG_3				; If Y is negative, change Y to positive
+		NOT R2, R2
+		ADD R2, R2, #1
+		NOT R5, R5
+	NOT R3, R2			; Initialize the decrement counter
+	ADD R3, R3, #1			;
+	ADD R4, R1, #0			; Initialize the modulo counter
+	MOD_REPEAT
+		ADD R1, R1, R3 		;
+		BRn #2			; If R3 cannot go into R1 exit loop
+		ADD R4, R4, R3		; else continue to calculate modulo
+		BR MOD_REPEAT
+	STI R4, X_MOD_Y
+	LDI R1, SAVE_R1			; Restore registers
+	LDI R2, SAVE_R2			;
+	LDI R3, SAVE_R3			;
+	LDI R4, SAVE_R4			;
+	LDI R5, SAVE_R5			;
+	LDI R7, SAVE_R7			;
+	RET
+
+; Used to save and restore registers
+SAVE_R1 .FILL x3500
+SAVE_R2 .FILL x3501
+SAVE_R3 .FILL x3502
+SAVE_R4 .FILL x3503
+SAVE_R5 .FILL x3504
+SAVE_R7 .FILL x3505
 
 .END
