@@ -50,8 +50,8 @@ DRAW_BOARD
       AND R2,R2,#0
 
 PRINT_NEXT_NUMBER
-      LEA R0,SPACER
-      PUTS
+      LD R0,SPACE
+      OUT
 
       ADD R3,R5,R2
       LDR R3,R3,#0
@@ -61,97 +61,35 @@ PRINT_NEXT_NUMBER
       LDR R0,R0,#0
       PUTS
 
-      LEA R0,SPACER
-      PUTS
+      LD R0,SPACE
+      OUT
 
       ADD R0,R2,#-2
       BRnz PRINT_VERT_DIVIDER
 
-      JSR PRINT_NEXT_NUMBER
+      ADD R0,R2,#-3
+      BRz PRINT_HOR_DIVIDER
+
+      ADD R0,R2,#-6
+      BRz PRINT_HOR_DIVIDER
+
+      ADD R0,R2,#-5
+      BRnz PRINT_VERT_DIVIDER
+
+      ADD R0,R2,#-8
+      BRnz PRINT_VERT_DIVIDER
+
+      JSR DRAW_EXIT
 
 PRINT_VERT_DIVIDER
       LEA R0,VERT_DIV
       PUTS
       JSR PRINT_NEXT_NUMBER
 
-      ; LEA R0,GAME_STATE
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,VERT_DIV
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,GAME_STATE
-      ; ADD R0,R0,#2
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,VERT_DIV
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,GAME_STATE
-      ; ADD R0,R0,#4
-      ; PUTS
-      ; LEA R0,SPACER_END
-      ; PUTS
-      ; LEA R0,HOR_DIV
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,GAME_STATE
-      ; ADD R0,R0,#6
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,VERT_DIV
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,GAME_STATE
-      ; ADD R0,R0,#8
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,VERT_DIV
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,GAME_STATE
-      ; ADD R0,R0,#10
-      ; PUTS
-      ; LEA R0,SPACER_END
-      ; PUTS
-      ; LEA R0,HOR_DIV
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,GAME_STATE
-      ; ADD R0,R0,#12
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,VERT_DIV
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,GAME_STATE
-      ; ADD R0,R0,#14
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,VERT_DIV
-      ; PUTS
-      ; LEA R0,SPACER
-      ; PUTS
-      ; LEA R0,GAME_STATE
-      ; LEA R1,GAME_STATE_LEN
-      ; ADD R1,R1,#-2
-      ; ADD R0,R1,#0
-      ; PUTS
-      ; LEA R0,SPACER_END
-      ; PUTS
+PRINT_HOR_DIVIDER
+      LEA R0,HOR_DIV
+      PUTS
+      JSR PRINT_NEXT_NUMBER
 
 DRAW_EXIT
       LDR   R7, R6, #0
@@ -163,7 +101,7 @@ DRAW_EXIT
       SPACE             .FILL x20
       SPACER            .STRINGZ " "
       SPACER_END        .STRINGZ " \n"
-      HOR_DIV           .STRINGZ "-----------\n"
+      HOR_DIV           .STRINGZ "\n-----------\n"
       VERT_DIV          .STRINGZ "|"
 
 ; data
@@ -204,21 +142,21 @@ DRAW_EXIT
                         .FILL #4
                         .FILL #6
 
-      TEXT_BOARD_LABELS_TBL_PTR .FILL x3076 ; TEXT_BOARD_LABELS_TBL
+      TEXT_BOARD_LABELS_TBL_PTR .FILL x3082 ; TEXT_BOARD_LABELS_TBL
 
       WELCOME_MESSAGE   .STRINGZ "Welcome to LC-3 TTT minigame\n"
 
-      TEXT_BOARD_LABELS_TBL .FILL x3081 ; BOARD_LABEL_0
-                            .FILL x3083 ; BOARD_LABEL_1
-                            .FILL x3085 ; BOARD_LABEL_2
-                            .FILL x3087 ; BOARD_LABEL_3
-                            .FILL x3089 ; BOARD_LABEL_4
-                            .FILL x308B ; BOARD_LABEL_5
-                            .FILL x308D ; BOARD_LABEL_6
-                            .FILL x308F ; BOARD_LABEL_7
-                            .FILL x3091 ; BOARD_LABEL_8
-                            .FILL x3093 ; BOARD_LABEL_9
-                            .FILL x3095 ; BOARD_LABEL_10
+      TEXT_BOARD_LABELS_TBL .FILL x308D ; BOARD_LABEL_0
+                            .FILL x308F ; BOARD_LABEL_1
+                            .FILL x3091 ; BOARD_LABEL_2
+                            .FILL x3093 ; BOARD_LABEL_3
+                            .FILL x3095 ; BOARD_LABEL_4
+                            .FILL x3097 ; BOARD_LABEL_5
+                            .FILL x3099 ; BOARD_LABEL_6
+                            .FILL x309B ; BOARD_LABEL_7
+                            .FILL x309D ; BOARD_LABEL_8
+                            .FILL x309F ; BOARD_LABEL_9
+                            .FILL x30A1 ; BOARD_LABEL_10
 
       BOARD_LABEL_0     .STRINGZ	"O"
       BOARD_LABEL_1     .STRINGZ	"X"
