@@ -16,10 +16,76 @@ MAIN
       LEA R0,WELCOME_MESSAGE
       PUTS
 
+GAME_LOOP
       JSR DRAW_BOARD
       ; JSR MARK_POSITION
       ; JSR DRAW_BOARD
+
+      JSR CHECK_WINNING_COMBINATION ; check for winning combinations (R0 1 = win)
+      ADD R0,R0,#0
+      BRp GAME_WIN
+
+      ; check whether there are available moves
+      LD R0,MOVES_LEFT
+      ADD R0,R0,#0
+      BRz GAME_OVER
+      ADD R0,R0,#-1
+      ST R0,MOVES_LEFT
+      BRnzp GAME_LOOP
+
+GAME_WIN
+      LEA R0, WIN_MESSAGE
+      PUTS
+
+GAME_OVER
       HALT
+
+
+CHECK_WINNING_COMBINATION
+      STR R7, R6, #-1     ; save registers
+      ADD R6, R6, #-1
+
+      LEA R1,WIN_COMBINATIONS
+
+      AND R2,R2,#0  ; loop counter
+      ADD R2,R2,#0
+
+      AND R4,R4,#0  ; succession counter (3 = victory)
+
+CHECK_WINNING_COMBINATION_LOOP
+      ADD R0,R1,R2
+      LDR R0,R0,#0  ; board offset from R2-th index in winning combinations array
+      BRn CHECK_WINNING_COMBINATION_EXIT  ; nothing left to check
+
+      ADD R0,R5,R0
+      LDR R0,R0,#0  ; value from game state in R0-th spot
+      LD R3,PREVIOUS_SYMBOL
+      ST R0,PREVIOUS_SYMBOL
+
+      AND R0,R0,R0
+      BRp CHECK_WINNING_COMBINATION_INCREMENT
+      BR CHECK_WINNING_COMBINATION_COUNTER_RESET
+
+CHECK_WINNING_COMBINATION_INCREMENT
+      ADD R4,R4,#1
+      BR CHECK_WINNING_COMBINATION_CONTINUE
+
+CHECK_WINNING_COMBINATION_COUNTER_RESET
+      AND R4,R4,#0
+
+CHECK_WINNING_COMBINATION_CONTINUE
+      ADD R0,R4,#-2
+      BRp CHECK_WINNING_COMBINATION_EXIT
+
+      ADD R2,R2,#1  ; increment loop counter
+      BRp CHECK_WINNING_COMBINATION_LOOP
+
+CHECK_WINNING_COMBINATION_EXIT
+      LDR   R7, R6, #0
+      ADD   R6, R6, #1
+      RET
+
+PREVIOUS_SYMBOL .FILL x0
 
 ;
 ; TBD
@@ -79,6 +145,9 @@ PRINT_NEXT_NUMBER
       ADD R0,R2,#-8
       BRnz PRINT_VERT_DIVIDER
 
+      LD R0,NEW_LINE
+      OUT
+
       JSR DRAW_EXIT
 
 PRINT_VERT_DIVIDER
@@ -106,18 +175,19 @@ DRAW_EXIT
 
 ; data
       STACK             .FILL x4000
-      BOARD             .FILL #2
-                        .FILL #3
-                        .FILL #4
-                        .FILL #5
-                        .FILL #6
-                        .FILL #7
-                        .FILL #8
-                        .FILL #9
-                        .FILL #10
+      BOARD             .FILL x1
+                        .FILL x1
+                        .FILL x1
+                        .FILL x0
+                        .FILL x0
+                        .FILL x0
+                        .FILL x0
+                        .FILL x0
+                        .FILL x0
+      MOVES_LEFT        .FILL #9
+      WINNER            .FILL x0
 
-      WINNING_COMBINATIONS
-                        .FILL #0
+      WIN_COMBINATIONS  .FILL #0
                         .FILL #1
                         .FILL #2
                         .FILL #3
@@ -141,33 +211,19 @@ DRAW_EXIT
                         .FILL #2
                         .FILL #4
                         .FILL #6
+                        .FILL #-1
 
-      TEXT_BOARD_LABELS_TBL_PTR .FILL x3082 ; TEXT_BOARD_LABELS_TBL
+      TEXT_BOARD_LABELS_TBL_PTR .FILL x30B4 ; TEXT_BOARD_LABELS_TBL
 
       WELCOME_MESSAGE   .STRINGZ "Welcome to LC-3 TTT minigame\n"
+      WIN_MESSAGE       .STRINGZ "You won!"  ; TODO: add symbol ref
 
-      TEXT_BOARD_LABELS_TBL .FILL x308D ; BOARD_LABEL_0
-                            .FILL x308F ; BOARD_LABEL_1
-                            .FILL x3091 ; BOARD_LABEL_2
-                            .FILL x3093 ; BOARD_LABEL_3
-                            .FILL x3095 ; BOARD_LABEL_4
-                            .FILL x3097 ; BOARD_LABEL_5
-                            .FILL x3099 ; BOARD_LABEL_6
-                            .FILL x309B ; BOARD_LABEL_7
-                            .FILL x309D ; BOARD_LABEL_8
-                            .FILL x309F ; BOARD_LABEL_9
-                            .FILL x30A1 ; BOARD_LABEL_10
+      TEXT_BOARD_LABELS_TBL .FILL x30B7 ; BOARD_LABEL_0
+                            .FILL x30B9 ; BOARD_LABEL_1
+                            .FILL x30BB ; BOARD_LABEL_2
 
-      BOARD_LABEL_0     .STRINGZ	"O"
+      BOARD_LABEL_0     .STRINGZ	" "
       BOARD_LABEL_1     .STRINGZ	"X"
-      BOARD_LABEL_2     .STRINGZ	"1"
-      BOARD_LABEL_3     .STRINGZ	"2"
-      BOARD_LABEL_4     .STRINGZ	"3"
-      BOARD_LABEL_5     .STRINGZ	"4"
-      BOARD_LABEL_6     .STRINGZ	"5"
-      BOARD_LABEL_7     .STRINGZ	"6"
-      BOARD_LABEL_8     .STRINGZ	"7"
-      BOARD_LABEL_9     .STRINGZ	"8"
-      BOARD_LABEL_10    .STRINGZ	"9"
+      BOARD_LABEL_2     .STRINGZ	"O"
 
 .END
