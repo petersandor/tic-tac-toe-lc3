@@ -23,23 +23,28 @@ GAME_LOOP
 
       JSR CHECK_WINNING_COMBINATION ; check for winning combinations (R0 1 = win)
       ADD R0,R0,#0
-      BRp GAME_WIN
+      BRz GAME_WIN
 
       ; check whether there are available moves
       LD R0,MOVES_LEFT
       ADD R0,R0,#0
       BRz GAME_OVER
+
+
+
       ADD R0,R0,#-1
       ST R0,MOVES_LEFT
       BRnzp GAME_LOOP
 
 GAME_WIN
+      LD R0,NEW_LINE
+      OUT
+      OUT
       LEA R0, WIN_MESSAGE
       PUTS
 
 GAME_OVER
       HALT
-
 
 CHECK_WINNING_COMBINATION
       STR R7, R6, #-1     ; save registers
@@ -55,16 +60,19 @@ CHECK_WINNING_COMBINATION
 CHECK_WINNING_COMBINATION_LOOP
       ADD R0,R1,R2
       LDR R0,R0,#0  ; board offset from R2-th index in winning combinations array
-      BRn CHECK_WINNING_COMBINATION_EXIT  ; nothing left to check
+      BRn CHECK_WINNING_COMBINATION_COUNTER_RESET
+      ADD R3,R0,#-10
+      BRz CHECK_WINNING_COMBINATION_EXIT  ; nothing left to check
 
       ADD R0,R5,R0
       LDR R0,R0,#0  ; value from game state in R0-th spot
       LD R3,PREVIOUS_SYMBOL
       ST R0,PREVIOUS_SYMBOL
 
-      AND R0,R0,R0
+      AND R0,R0,R3  ; compare current (R0) with previous (R3)
       BRp CHECK_WINNING_COMBINATION_INCREMENT
-      BR CHECK_WINNING_COMBINATION_COUNTER_RESET
+      AND R4,R4,#0
+      BR CHECK_WINNING_COMBINATION_CONTINUE
 
 CHECK_WINNING_COMBINATION_INCREMENT
       ADD R4,R4,#1
@@ -72,13 +80,14 @@ CHECK_WINNING_COMBINATION_INCREMENT
 
 CHECK_WINNING_COMBINATION_COUNTER_RESET
       AND R4,R4,#0
+      ST R4,PREVIOUS_SYMBOL
 
 CHECK_WINNING_COMBINATION_CONTINUE
       ADD R0,R4,#-2
-      BRp CHECK_WINNING_COMBINATION_EXIT
+      BRz CHECK_WINNING_COMBINATION_EXIT
 
       ADD R2,R2,#1  ; increment loop counter
-      BRp CHECK_WINNING_COMBINATION_LOOP
+      BR CHECK_WINNING_COMBINATION_LOOP
 
 CHECK_WINNING_COMBINATION_EXIT
       LDR   R7, R6, #0
@@ -175,10 +184,10 @@ DRAW_EXIT
 
 ; data
       STACK             .FILL x4000
-      BOARD             .FILL x1
+      BOARD             .FILL x0
                         .FILL x1
                         .FILL x1
-                        .FILL x0
+                        .FILL x1
                         .FILL x0
                         .FILL x0
                         .FILL x0
@@ -190,37 +199,44 @@ DRAW_EXIT
       WIN_COMBINATIONS  .FILL #0
                         .FILL #1
                         .FILL #2
+                        .FILL #-1
                         .FILL #3
                         .FILL #4
                         .FILL #5
+                        .FILL #-1
                         .FILL #6
                         .FILL #7
                         .FILL #8
+                        .FILL #-1
                         .FILL #0
                         .FILL #3
                         .FILL #6
+                        .FILL #-1
                         .FILL #1
                         .FILL #4
                         .FILL #7
+                        .FILL #-1
                         .FILL #2
                         .FILL #5
                         .FILL #8
+                        .FILL #-1
                         .FILL #0
                         .FILL #4
                         .FILL #8
+                        .FILL #-1
                         .FILL #2
                         .FILL #4
                         .FILL #6
-                        .FILL #-1
+                        .FILL #10
 
-      TEXT_BOARD_LABELS_TBL_PTR .FILL x30B4 ; TEXT_BOARD_LABELS_TBL
+      TEXT_BOARD_LABELS_TBL_PTR .FILL x30C4 ; TEXT_BOARD_LABELS_TBL
 
       WELCOME_MESSAGE   .STRINGZ "Welcome to LC-3 TTT minigame\n"
       WIN_MESSAGE       .STRINGZ "You won!"  ; TODO: add symbol ref
 
-      TEXT_BOARD_LABELS_TBL .FILL x30B7 ; BOARD_LABEL_0
-                            .FILL x30B9 ; BOARD_LABEL_1
-                            .FILL x30BB ; BOARD_LABEL_2
+      TEXT_BOARD_LABELS_TBL .FILL x30C7	; BOARD_LABEL_0
+                            .FILL x30C9 ; BOARD_LABEL_1
+                            .FILL x30CB ; BOARD_LABEL_2
 
       BOARD_LABEL_0     .STRINGZ	" "
       BOARD_LABEL_1     .STRINGZ	"X"
