@@ -144,7 +144,10 @@ CHECK_POS
       LD R4,NEXT_PLAYER
       AND R4,R4,R3
       BRp CHECK_POS_NEXT ; position already owned
-      BRz MAKE_MOVE_CONTINUE ; combination not viable (already blocked by other player), skip it
+      LD R3,POS_ENEMY_PER_COMBINATION_COUNT
+      ADD R3,R3,#1
+      ST R3,POS_ENEMY_PER_COMBINATION_COUNT
+      ; BRz MAKE_MOVE_CONTINUE ; combination not viable (already blocked by other player), skip it
 
 CHECK_POS_NEXT
       LD R3, POS_CHECK_COUNTER
@@ -157,6 +160,9 @@ CHECK_POS_NEXT
 ; Loads address of the first available position in R0 which is then used
 ;
 PICK_POSITION
+      ; LD R4, POS_ENEMY_PER_COMBINATION_COUNT
+      ; AND R4,R4,#2
+      ; BR MAKE_MOVE_CONTINUE
       LD R4, AVAILABLE_POS_1
       BRp MARK_POSITION
       LD R4, AVAILABLE_POS_2
@@ -176,6 +182,7 @@ MARK_POSITION
 MAKE_MOVE_CONTINUE
       AND R4,R4,#0
       ST R4, POS_CHECK_COUNTER
+      ST R4, POS_ENEMY_PER_COMBINATION_COUNT
       ADD R4,R4,#-1
       ST R4, AVAILABLE_POS_1
       ST R4, AVAILABLE_POS_2
@@ -187,6 +194,7 @@ MAKE_MOVE_CONTINUE
 MARK_POSITION_EXIT
       AND R4,R4,#0
       ST R4, POS_CHECK_COUNTER
+      ST R4, POS_ENEMY_PER_COMBINATION_COUNT
       ADD R4,R4,#-1
       ST R4, AVAILABLE_POS_1
       ST R4, AVAILABLE_POS_2
@@ -209,11 +217,12 @@ MAKE_MOVE_END
       ADD   R6, R6, #1
       RET
 
-NEXT_PLAYER         .FILL x1  ; 1 - X, 2 - O
-POS_CHECK_COUNTER   .FILL x0
-AVAILABLE_POS_1     .FILL #-1
-AVAILABLE_POS_2     .FILL #-1
-AVAILABLE_POS_3     .FILL #-1
+NEXT_PLAYER                       .FILL x1  ; 1 - X, 2 - O
+POS_CHECK_COUNTER                 .FILL x0
+POS_ENEMY_PER_COMBINATION_COUNT   .FILL x0
+AVAILABLE_POS_1                   .FILL #-1
+AVAILABLE_POS_2                   .FILL #-1
+AVAILABLE_POS_3                   .FILL #-1
 
 ;
 ; Outputs the board representing the game state
