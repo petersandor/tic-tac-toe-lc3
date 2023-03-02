@@ -144,10 +144,10 @@ CHECK_POS
       LD R4,NEXT_PLAYER
       AND R4,R4,R3
       BRp CHECK_POS_NEXT ; position already owned
-      LD R3,POS_ENEMY_PER_COMBINATION_COUNT
-      ADD R3,R3,#1
-      ST R3,POS_ENEMY_PER_COMBINATION_COUNT
-      ; BRz MAKE_MOVE_CONTINUE ; combination not viable (already blocked by other player), skip it
+      ; LD R3,POS_ENEMY_PER_COMBINATION_COUNT
+      ; ADD R3,R3,#1
+      ; ST R3,POS_ENEMY_PER_COMBINATION_COUNT
+      BRz MAKE_MOVE_CONTINUE ; combination not viable (already blocked by other player), skip it
 
 CHECK_POS_NEXT
       LD R3, POS_CHECK_COUNTER
@@ -341,15 +341,15 @@ DRAW_EXIT
                         .FILL #10
                         .FILL #10
 
-      TEXT_BOARD_LABELS_TBL_PTR .FILL x3120 ; TEXT_BOARD_LABELS_TBL
+      TEXT_BOARD_LABELS_TBL_PTR .FILL x3123 ; TEXT_BOARD_LABELS_TBL
 
       WELCOME_MESSAGE   .STRINGZ "Welcome to LC-3 TTT minigame\n"
       WIN_MESSAGE       .STRINGZ "You won!"  ; TODO: add symbol ref
       DRAW_MESSAGE      .STRINGZ "It's a draw."
 
-      TEXT_BOARD_LABELS_TBL .FILL x3123	; BOARD_LABEL_0
-                            .FILL x3125 ; BOARD_LABEL_1
-                            .FILL x3127 ; BOARD_LABEL_2
+      TEXT_BOARD_LABELS_TBL .FILL x3126	; BOARD_LABEL_0
+                            .FILL x3128 ; BOARD_LABEL_1
+                            .FILL x312A ; BOARD_LABEL_2
 
       BOARD_LABEL_0     .STRINGZ	" "
       BOARD_LABEL_1     .STRINGZ	"X"
