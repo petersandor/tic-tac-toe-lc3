@@ -417,7 +417,7 @@ PROMPT_LOOP                   ; prompt until valid value is provided
       OUT
 
       ADD   R0, R1, #0
-      BRnz  PROMPT_INVALID            ; TODO check free spots
+      BRnz  PROMPT_INVALID
       LD    R0, PROMPT_RESPONSE_max
       ADD   R0, R0, R1
       BRp   PROMPT_INVALID
@@ -468,8 +468,8 @@ MOD_DIV
 MOD_DIV_LOOP
       ADD   R1, R1, #1
       ADD   R0, R0, R2        ; R0 -= R1
-      BRp   MOD_DIV_LOOP        ; R0 - R1 > 0, so keep looping
-      BRz   MOD_DIV_END         ; R0 = 0, so we finished exactly
+      BRp   MOD_DIV_LOOP      ; R0 - R1 > 0, so keep looping
+      BRz   MOD_DIV_END       ; R0 = 0, so we finished exactly
 
                               ; R0 < 0, so we subtracted an extra one
       LDR   R2, R6, #2        ; add it back in
