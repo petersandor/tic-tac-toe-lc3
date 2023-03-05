@@ -1,43 +1,46 @@
+;
+; Project:  petersandor/tic-tac-toe-lc3
+; Author:   Peter Šándor (March 2023)
+; License:  MIT
+;
+
 .ORIG x3000
 
 MAIN
-      LD R6,STACK
-      LEA R5,BOARD
+      LD    R6, STACK
+      LEA   R5, BOARD
 
-      LEA R0,WELCOME_MESSAGE
+      LEA   R0, WELCOME_MESSAGE
       PUTS
 
 GAME_LOOP
-      JSR DRAW_BOARD
+      JSR   DRAW_BOARD
 
-      ; check for winning combinations (R0 - 0 win)
-      JSR CHECK_WIN_COMBINATION
-      BRz GAME_WIN
+      JSR   CHECK_WIN_COMBINATION       ; check for winning combinations (R0 - 0 win)
+      BRz   GAME_WIN
 
-      ; check whether there are available moves (r0, 0 = draw)
-      JSR CHECK_NEXT_MOVE
-      BRz GAME_DRAW
-      BRp GAME_LOOP_CONTINUE
+      JSR   CHECK_NEXT_MOVE             ; check whether there are available moves (r0, 0 = draw)
+      BRz   GAME_DRAW
+      BRp   GAME_LOOP_CONTINUE
 
-      ; ask the player for input (1-9)
-      LEA R0, PROMPT_MOVE_MESSAGE
-      JSR PROMPT
+      LEA   R0, PROMPT_MOVE_MESSAGE     ; ask the player for input (1-9)
+      JSR   PROMPT
 
 GAME_LOOP_CONTINUE
-      JSR MAKE_MOVE ; (R0 = index of the chosen position)
-      BR  GAME_LOOP
+      JSR   MAKE_MOVE                   ; (R0 = index of the chosen position)
+      BR    GAME_LOOP
 
 GAME_DRAW
-      LD R0,NEW_LINE
+      LD    R0, NEW_LINE
       OUT
-      LEA R0, DRAW_MESSAGE
+      LEA   R0, DRAW_MESSAGE
       PUTS
-      BR GAME_OVER
+      BR    GAME_OVER
 
 GAME_WIN
-      LD R0,NEW_LINE
+      LD    R0, NEW_LINE
       OUT
-      LEA R0, WIN_MESSAGE
+      LEA   R0, WIN_MESSAGE
       PUTS
 
 GAME_OVER
@@ -80,15 +83,15 @@ GAME_OVER
 ;  -1 if it's player's turn
 ;
 CHECK_NEXT_MOVE
-      STR R7, R6, #-1     ; save registers
-      ADD R6, R6, #-1
+      STR   R7, R6, #-1     ; save registers
+      ADD   R6, R6, #-1
 
-      LD R0,MOVES_LEFT
-      BRz CHECK_NEXT_MOVE_EXIT
-      LD R0, NEXT_PLAYER
-      ADD R0, R0, #-1
-      BRp CHECK_NEXT_MOVE_EXIT
-      ADD R0, R0, #-1
+      LD    R0, MOVES_LEFT
+      BRz   CHECK_NEXT_MOVE_EXIT
+      LD    R0, NEXT_PLAYER
+      ADD   R0, R0, #-1
+      BRp   CHECK_NEXT_MOVE_EXIT
+      ADD   R0, R0, #-1
 
 CHECK_NEXT_MOVE_EXIT
       LDR   R7, R6, #0
@@ -100,45 +103,45 @@ CHECK_NEXT_MOVE_EXIT
 ; Checks the game state for any of the possible winning combinations
 ;
 CHECK_WIN_COMBINATION
-      STR R7, R6, #-1     ; save registers
-      ADD R6, R6, #-1
+      STR   R7, R6, #-1     ; save registers
+      ADD   R6, R6, #-1
 
-      LEA R1,WIN_COMBINATIONS
+      LEA   R1, WIN_COMBINATIONS
 
-      AND R2,R2,#0  ; loop counter
-      AND R4,R4,#0  ; succession counter (3 = victory)
+      AND   R2, R2, #0  ; loop counter
+      AND   R4, R4, #0  ; succession counter (3 = victory)
 
 CHECK_WIN_COMBINATION_LOOP
-      ADD R0,R1,R2
-      LDR R0,R0,#0  ; board offset from R2-th index in winning combinations array
-      BRn CHECK_WIN_COMBINATION_COUNTER_RESET
-      ADD R3,R0,#-10
-      BRz CHECK_WIN_COMBINATION_EXIT  ; nothing left to check
+      ADD   R0, R1, R2
+      LDR   R0, R0, #0  ; board offset from R2-th index in winning combinations array
+      BRn   CHECK_WIN_COMBINATION_COUNTER_RESET
+      ADD   R3, R0, #-10
+      BRz   CHECK_WIN_COMBINATION_EXIT  ; nothing left to check
 
-      ADD R0,R5,R0
-      LDR R0,R0,#0  ; value from game state in R0-th spot
-      LD R3,PREVIOUS_SYMBOL
-      ST R0,PREVIOUS_SYMBOL
+      ADD   R0, R5, R0
+      LDR   R0, R0, #0  ; value from game state in R0-th spot
+      LD    R3, PREVIOUS_SYMBOL
+      ST    R0, PREVIOUS_SYMBOL
 
-      AND R0,R0,R3  ; compare current (R0) with previous (R3)
-      BRp CHECK_WIN_COMBINATION_INCREMENT
-      AND R4,R4,#0
-      BR CHECK_WIN_COMBINATION_CONTINUE
+      AND   R0, R0, R3  ; compare current (R0) with previous (R3)
+      BRp   CHECK_WIN_COMBINATION_INCREMENT
+      AND   R4, R4, #0
+      BR    CHECK_WIN_COMBINATION_CONTINUE
 
 CHECK_WIN_COMBINATION_INCREMENT
-      ADD R4,R4,#1
-      BR CHECK_WIN_COMBINATION_CONTINUE
+      ADD   R4, R4, #1
+      BR    CHECK_WIN_COMBINATION_CONTINUE
 
 CHECK_WIN_COMBINATION_COUNTER_RESET
-      AND R4,R4,#0
-      ST R4,PREVIOUS_SYMBOL
+      AND   R4, R4, #0
+      ST    R4, PREVIOUS_SYMBOL
 
 CHECK_WIN_COMBINATION_CONTINUE
-      ADD R0,R4,#-2
-      BRz CHECK_WIN_COMBINATION_EXIT
+      ADD   R0, R4, #-2
+      BRz   CHECK_WIN_COMBINATION_EXIT
 
-      ADD R2,R2,#1  ; increment loop counter
-      BR CHECK_WIN_COMBINATION_LOOP
+      ADD   R2, R2, #1  ; increment loop counter
+      BR    CHECK_WIN_COMBINATION_LOOP
 
 CHECK_WIN_COMBINATION_EXIT
       LDR   R7, R6, #0
@@ -158,44 +161,44 @@ PREVIOUS_SYMBOL .FILL x0
 ; clobbers - R1, R2, R3
 ;
 MAKE_MOVE
-      STR R7, R6, #-1     ; save registers
-      ADD R6, R6, #-1
+      STR   R7, R6, #-1     ; save registers
+      ADD   R6, R6, #-1
 
-      LD R1,NEXT_PLAYER
-      ADD R2,R1,#-1
-      BRp GET_RANDOM_POS
+      LD    R1, NEXT_PLAYER
+      ADD   R2, R1, #-1
+      BRp   GET_RANDOM_POS
 
 PLAYER_MOVE
-      ADD R3, R5, R0
-      STR R1, R3, #0
-      BR SET_NEXT_PLAYER
+      ADD   R3, R5, R0
+      STR   R1, R3, #0
+      BR    SET_NEXT_PLAYER
 
 GET_RANDOM_POS
-      LD R0, RANDOM_4_MOD
-      JSR RAND_MOD        ; returns R0 - random number
+      LD    R0, RANDOM_4_MOD
+      JSR   RAND_MOD        ; returns R0 - random number
       ADD   R3, R5, R0
       LDR   R3, R3, #0
       BRp   GET_RANDOM_POS
-      ADD R3, R5, R0
-      STR R1, R3, #0
+      ADD   R3, R5, R0
+      STR   R1, R3, #0
 
 SET_NEXT_PLAYER
-      LD R1,NEXT_PLAYER
-      ADD R1,R1,#-1
-      BRp SET_NEXT_PLAYER_X
+      LD    R1, NEXT_PLAYER
+      ADD   R1, R1, #-1
+      BRp   SET_NEXT_PLAYER_X
 
 SET_NEXT_PLAYER_O
-      ADD R1,R1,#2
-      ST R1,NEXT_PLAYER
-      BR MAKE_MOVE_END
+      ADD   R1, R1, #2
+      ST    R1, NEXT_PLAYER
+      BR    MAKE_MOVE_END
 
 SET_NEXT_PLAYER_X
-      ST R1, NEXT_PLAYER
+      ST   R1, NEXT_PLAYER
 
 MAKE_MOVE_END
-      LD R0,MOVES_LEFT
-      ADD R0, R0, #-1
-      ST R0,MOVES_LEFT
+      LD    R0, MOVES_LEFT
+      ADD   R0, R0, #-1
+      ST    R0, MOVES_LEFT
       AND   R0, R0, #0
       AND   R1, R1, #0
       AND   R2, R2, #0
@@ -211,59 +214,59 @@ RANDOM_4_MOD                      .FILL x8
 ; Outputs the board representing the game state
 ;
 DRAW_BOARD
-      STR R7, R6, #-1     ; save registers
-      ADD R6, R6, #-1
+      STR   R7, R6, #-1     ; save registers
+      ADD   R6, R6, #-1
 
-      LD R0,NEW_LINE
+      LD    R0, NEW_LINE
       OUT
 
-      LD R1,TEXT_BOARD_LABELS_TBL_PTR
-      AND R2,R2,#0
+      LD    R1, TEXT_BOARD_LABELS_TBL_PTR
+      AND   R2, R2, #0
 
 PRINT_NEXT_NUMBER
-      LD R0,SPACE
+      LD    R0, SPACE
       OUT
 
-      ADD R3,R5,R2
-      LDR R3,R3,#0
-      ADD R2,R2,#1
+      ADD   R3, R5, R2
+      LDR   R3, R3, #0
+      ADD   R2, R2, #1
 
-      ADD R0,R1,R3
-      LDR R0,R0,#0
+      ADD   R0, R1, R3
+      LDR   R0, R0, #0
       PUTS
 
-      LD R0,SPACE
+      LD    R0, SPACE
       OUT
 
-      ADD R0,R2,#-2
+      ADD   R0, R2, #-2
       BRnz PRINT_VERT_DIVIDER
 
-      ADD R0,R2,#-3
-      BRz PRINT_HOR_DIVIDER
+      ADD   R0, R2, #-3
+      BRz   PRINT_HOR_DIVIDER
 
-      ADD R0,R2,#-6
-      BRz PRINT_HOR_DIVIDER
+      ADD   R0, R2, #-6
+      BRz   PRINT_HOR_DIVIDER
 
-      ADD R0,R2,#-5
-      BRnz PRINT_VERT_DIVIDER
+      ADD   R0, R2, #-5
+      BRnz  PRINT_VERT_DIVIDER
 
-      ADD R0,R2,#-8
-      BRnz PRINT_VERT_DIVIDER
+      ADD   R0, R2, #-8
+      BRnz  PRINT_VERT_DIVIDER
 
-      LD R0,NEW_LINE
+      LD    R0,NEW_LINE
       OUT
 
-      JSR DRAW_EXIT
+      JSR   DRAW_EXIT
 
 PRINT_VERT_DIVIDER
-      LEA R0,VERT_DIV
+      LEA   R0, VERT_DIV
       PUTS
-      JSR PRINT_NEXT_NUMBER
+      JSR   PRINT_NEXT_NUMBER
 
 PRINT_HOR_DIVIDER
-      LEA R0,HOR_DIV
+      LEA   R0, HOR_DIV
       PUTS
-      JSR PRINT_NEXT_NUMBER
+      JSR   PRINT_NEXT_NUMBER
 
 DRAW_EXIT
       LDR   R7, R6, #0
@@ -465,8 +468,8 @@ MOD_DIV
 MOD_DIV_LOOP
       ADD   R1, R1, #1
       ADD   R0, R0, R2        ; R0 -= R1
-      BRp MOD_DIV_LOOP        ; R0 - R1 > 0, so keep looping
-      BRz MOD_DIV_END         ; R0 = 0, so we finished exactly
+      BRp   MOD_DIV_LOOP        ; R0 - R1 > 0, so keep looping
+      BRz   MOD_DIV_END         ; R0 = 0, so we finished exactly
 
                               ; R0 < 0, so we subtracted an extra one
       LDR   R2, R6, #2        ; add it back in
