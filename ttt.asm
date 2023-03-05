@@ -10,24 +10,29 @@ MAIN
 GAME_LOOP
       JSR DRAW_BOARD
 
-      JSR CHECK_WINNING_COMBINATION ; check for winning combinations (R0 1 = win)
-      ADD R0,R0,#0
+      ; check for winning combinations (R0 - 0 win)
+      JSR CHECK_WIN_COMBINATION
       BRz GAME_WIN
 
-      ; check whether there are available moves
-      LD R0,MOVES_LEFT
-      ADD R0,R0,#0
-      BRz GAME_OVER
+      ; check whether there are available moves (r0, 0 = draw)
+      JSR CHECK_NEXT_MOVE
+      BRz GAME_DRAW
+      BRp GAME_LOOP_CONTINUE
 
+      ; ask the player for input (1-9)
       LEA R0, PROMPT_MOVE_MESSAGE
       JSR PROMPT
 
-      JSR MAKE_MOVE ; (R0 > 0 = spot marked)
+GAME_LOOP_CONTINUE
+      JSR MAKE_MOVE ; (R0 = index of the chosen position)
+      BR  GAME_LOOP
 
-      LD R0,MOVES_LEFT
-      ADD R0,R0,#-1
-      ST R0,MOVES_LEFT
-      BRnzp GAME_LOOP
+GAME_DRAW
+      LD R0,NEW_LINE
+      OUT
+      LEA R0, DRAW_MESSAGE
+      PUTS
+      BR GAME_OVER
 
 GAME_WIN
       LD R0,NEW_LINE
@@ -52,38 +57,63 @@ GAME_OVER
       MOVES_LEFT        .FILL #9
       WINNER            .FILL x0
 
-      TEXT_BOARD_LABELS_TBL_PTR .FILL x3070 ; TEXT_BOARD_LABELS_TBL
+      TEXT_BOARD_LABELS_TBL_PTR .FILL x3071 ; TEXT_BOARD_LABELS_TBL
 
-      WELCOME_MESSAGE   .STRINGZ "Welcome to LC-3 TTT minigame\n"
-      WIN_MESSAGE       .STRINGZ "You won!"  ; TODO: add symbol ref
-      DRAW_MESSAGE      .STRINGZ "It's a draw."
-      PROMPT_MOVE_MESSAGE .STRINGZ	"Choose position (1-9): "
+      WELCOME_MESSAGE       .STRINGZ "Welcome to LC-3 TTT minigame\n"
+      WIN_MESSAGE           .STRINGZ "You won!"
+      DRAW_MESSAGE          .STRINGZ "It's a draw."
+      PROMPT_MOVE_MESSAGE   .STRINGZ "Choose position (1-9): "
 
-      TEXT_BOARD_LABELS_TBL .FILL x3073	; BOARD_LABEL_0
-                            .FILL x3075 ; BOARD_LABEL_1
-                            .FILL x3077 ; BOARD_LABEL_2
+      TEXT_BOARD_LABELS_TBL .FILL x3074	; BOARD_LABEL_0
+                            .FILL x3076 ; BOARD_LABEL_1
+                            .FILL x3078 ; BOARD_LABEL_2
 
       BOARD_LABEL_0     .STRINGZ	" "
       BOARD_LABEL_1     .STRINGZ	"X"
       BOARD_LABEL_2     .STRINGZ	"O"
 
-CHECK_WINNING_COMBINATION
+;
+; Checks who's next if there are moves left
+; Return value in r0
+;   1 if it's computer's turn
+;   0 if there are no moves left
+;  -1 if it's player's turn
+;
+CHECK_NEXT_MOVE
+      STR R7, R6, #-1     ; save registers
+      ADD R6, R6, #-1
+
+      LD R0,MOVES_LEFT
+      BRz CHECK_NEXT_MOVE_EXIT
+      LD R0, NEXT_PLAYER
+      ADD R0, R0, #-1
+      BRp CHECK_NEXT_MOVE_EXIT
+      ADD R0, R0, #-1
+
+CHECK_NEXT_MOVE_EXIT
+      LDR   R7, R6, #0
+      ADD   R6, R6, #1
+      ADD   R0, R0, #0
+      RET
+
+;
+; Checks the game state for any of the possible winning combinations
+;
+CHECK_WIN_COMBINATION
       STR R7, R6, #-1     ; save registers
       ADD R6, R6, #-1
 
       LEA R1,WIN_COMBINATIONS
 
       AND R2,R2,#0  ; loop counter
-      ADD R2,R2,#0
-
       AND R4,R4,#0  ; succession counter (3 = victory)
 
-CHECK_WINNING_COMBINATION_LOOP
+CHECK_WIN_COMBINATION_LOOP
       ADD R0,R1,R2
       LDR R0,R0,#0  ; board offset from R2-th index in winning combinations array
-      BRn CHECK_WINNING_COMBINATION_COUNTER_RESET
+      BRn CHECK_WIN_COMBINATION_COUNTER_RESET
       ADD R3,R0,#-10
-      BRz CHECK_WINNING_COMBINATION_EXIT  ; nothing left to check
+      BRz CHECK_WIN_COMBINATION_EXIT  ; nothing left to check
 
       ADD R0,R5,R0
       LDR R0,R0,#0  ; value from game state in R0-th spot
@@ -91,169 +121,91 @@ CHECK_WINNING_COMBINATION_LOOP
       ST R0,PREVIOUS_SYMBOL
 
       AND R0,R0,R3  ; compare current (R0) with previous (R3)
-      BRp CHECK_WINNING_COMBINATION_INCREMENT
+      BRp CHECK_WIN_COMBINATION_INCREMENT
       AND R4,R4,#0
-      BR CHECK_WINNING_COMBINATION_CONTINUE
+      BR CHECK_WIN_COMBINATION_CONTINUE
 
-CHECK_WINNING_COMBINATION_INCREMENT
+CHECK_WIN_COMBINATION_INCREMENT
       ADD R4,R4,#1
-      BR CHECK_WINNING_COMBINATION_CONTINUE
+      BR CHECK_WIN_COMBINATION_CONTINUE
 
-CHECK_WINNING_COMBINATION_COUNTER_RESET
+CHECK_WIN_COMBINATION_COUNTER_RESET
       AND R4,R4,#0
       ST R4,PREVIOUS_SYMBOL
 
-CHECK_WINNING_COMBINATION_CONTINUE
+CHECK_WIN_COMBINATION_CONTINUE
       ADD R0,R4,#-2
-      BRz CHECK_WINNING_COMBINATION_EXIT
+      BRz CHECK_WIN_COMBINATION_EXIT
 
       ADD R2,R2,#1  ; increment loop counter
-      BR CHECK_WINNING_COMBINATION_LOOP
+      BR CHECK_WIN_COMBINATION_LOOP
 
-CHECK_WINNING_COMBINATION_EXIT
+CHECK_WIN_COMBINATION_EXIT
       LDR   R7, R6, #0
       ADD   R6, R6, #1
+      ADD   R0, R0, #0
       RET
 
 PREVIOUS_SYMBOL .FILL x0
 
 
 ;
-; Marks free spots, alternating between players
+; Marks free spots
+;
+; 1. Player's turn - uses index from R0
+; 2. PC - choose random free slot
+;
+; clobbers - R1, R2, R3
 ;
 MAKE_MOVE
       STR R7, R6, #-1     ; save registers
       ADD R6, R6, #-1
 
-      LEA R1,WIN_COMBINATIONS
+      LD R1,NEXT_PLAYER
+      ADD R2,R1,#-1
+      BRp GET_RANDOM_POS
 
-      AND R2,R2,#0  ; loop counter
+PLAYER_MOVE
+      ADD R3, R5, R0
+      STR R1, R3, #0
+      BR SET_NEXT_PLAYER
 
-MAKE_MOVE_LOOP
-      ADD R0,R1,R2
-      LDR R0,R0,#0  ; board offset from R2-th index in winning combinations array
-      ADD R3,R0,#-10
-      BRz MARK_POSITION_EXIT  ; nothing left to check
+GET_RANDOM_POS
+      LD R0, RANDOM_4_MOD
+      JSR RAND_MOD        ; returns R0 - random number
+      ADD   R3, R5, R0
+      LDR   R3, R3, #0
+      BRp   GET_RANDOM_POS
+      ADD R3, R5, R0
+      STR R1, R3, #0
 
-      ADD R0,R5,R0
-
-CHECK_POS_LOOP
-      LD R3,POS_CHECK_COUNTER
-      ADD R3,R3,#0
-      BRz LOAD_POS_1
-
-      LD R3,POS_CHECK_COUNTER
-      ADD R3,R3,#-1
-      BRz LOAD_POS_2
-
-      LD R3,POS_CHECK_COUNTER
-      ADD R3,R3,#-2
-      BRz LOAD_POS_3
-
-LOAD_POS_1
-      ADD R4,R0,#0
-      LDR R3,R0,#0
-      BRp CHECK_POS
-      ST R4,AVAILABLE_POS_1 ;  save available empty position
-      BR CHECK_POS_NEXT
-
-LOAD_POS_2
-      ADD R4,R0,#1
-      LDR R3,R0,#1
-      BRp CHECK_POS
-      ST R4,AVAILABLE_POS_2 ;  save available empty position
-      BR CHECK_POS_NEXT
-
-LOAD_POS_3
-      ADD R4,R0,#2
-      LDR R3,R0,#2
-      BRp CHECK_POS
-      ST R4,AVAILABLE_POS_3 ;  save available empty position
-      BR CHECK_POS_NEXT
-
-CHECK_POS
-      LD R4,NEXT_PLAYER
-      AND R4,R4,R3
-      BRp CHECK_POS_NEXT ; position already owned
-      ; LD R3,POS_ENEMY_PER_COMBINATION_COUNT
-      ; ADD R3,R3,#1
-      ; ST R3,POS_ENEMY_PER_COMBINATION_COUNT
-      BRz MAKE_MOVE_CONTINUE ; combination not viable (already blocked by other player), skip it
-
-CHECK_POS_NEXT
-      LD R3, POS_CHECK_COUNTER
-      ADD R3,R3,#1
-      ST R3, POS_CHECK_COUNTER
-      ADD R3,R3,#-3
-      BRn CHECK_POS_LOOP
-
-;
-; Loads address of the first available position in R0 which is then used
-;
-PICK_POSITION
-      ; LD R4, POS_ENEMY_PER_COMBINATION_COUNT
-      ; AND R4,R4,#2
-      ; BR MAKE_MOVE_CONTINUE
-      LD R4, AVAILABLE_POS_1
-      BRp MARK_POSITION
-      LD R4, AVAILABLE_POS_2
-      BRp MARK_POSITION
-      LD R4, AVAILABLE_POS_3
-      BRp MARK_POSITION
-      BR MAKE_MOVE_CONTINUE
-
-;
-; Marks position R0 (address in BOARD) by player R3 (1 - X, 2 - O)
-;
-MARK_POSITION
-      LD R3,NEXT_PLAYER
-      STR R3,R4,#0
-      BR MARK_POSITION_EXIT
-
-MAKE_MOVE_CONTINUE
-      AND R4,R4,#0
-      ST R4, POS_CHECK_COUNTER
-      ST R4, POS_ENEMY_PER_COMBINATION_COUNT
-      ADD R4,R4,#-1
-      ST R4, AVAILABLE_POS_1
-      ST R4, AVAILABLE_POS_2
-      ST R4, AVAILABLE_POS_3
-
-      ADD R2,R2,#4  ; increment loop counter
-      BR MAKE_MOVE_LOOP
-
-MARK_POSITION_EXIT
-      AND R4,R4,#0
-      ST R4, POS_CHECK_COUNTER
-      ST R4, POS_ENEMY_PER_COMBINATION_COUNT
-      ADD R4,R4,#-1
-      ST R4, AVAILABLE_POS_1
-      ST R4, AVAILABLE_POS_2
-      ST R4, AVAILABLE_POS_3
-
-      LD R0,NEXT_PLAYER
-      ADD R0,R0,#-1
+SET_NEXT_PLAYER
+      LD R1,NEXT_PLAYER
+      ADD R1,R1,#-1
       BRp SET_NEXT_PLAYER_X
 
 SET_NEXT_PLAYER_O
-      ADD R0,R0,#2
-      ST R0,NEXT_PLAYER
+      ADD R1,R1,#2
+      ST R1,NEXT_PLAYER
       BR MAKE_MOVE_END
 
 SET_NEXT_PLAYER_X
-      ST R0, NEXT_PLAYER
+      ST R1, NEXT_PLAYER
 
 MAKE_MOVE_END
+      LD R0,MOVES_LEFT
+      ADD R0, R0, #-1
+      ST R0,MOVES_LEFT
+      AND   R0, R0, #0
+      AND   R1, R1, #0
+      AND   R2, R2, #0
+      AND   R3, R3, #0
       LDR   R7, R6, #0
       ADD   R6, R6, #1
       RET
 
 NEXT_PLAYER                       .FILL x1  ; 1 - X, 2 - O
-POS_CHECK_COUNTER                 .FILL x0
-POS_ENEMY_PER_COMBINATION_COUNT   .FILL x0
-AVAILABLE_POS_1                   .FILL #-1
-AVAILABLE_POS_2                   .FILL #-1
-AVAILABLE_POS_3                   .FILL #-1
+RANDOM_4_MOD                      .FILL x8
 
 ;
 ; Outputs the board representing the game state
@@ -321,7 +273,7 @@ DRAW_EXIT
 ; data
       NEW_LINE          .FILL x0A
       SPACE             .FILL x20
-      HOR_DIV           .STRINGZ "\n-----------\n"
+      HOR_DIV           .STRINGZ "\n---+---+---\n"
       VERT_DIV          .STRINGZ "|"
 
 
@@ -366,7 +318,7 @@ DRAW_EXIT
 ;
 
 ;
-; From Ryan Pendleton's 2048
+; From Ryan Pendleton's 2048 (modified by me) - Poor man's PRNG
 ;
 
 ;--------------------------------------------------------------------------
